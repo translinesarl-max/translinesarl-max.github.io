@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Transline</title>
+<meta name="theme-color" content="#0B1F3A">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="favicon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+html,body{margin:0;height:100%;background:#0B1F3A;overflow:hidden}
+iframe{position:fixed;inset:0;width:100%;height:100%;border:0;background:#0B1F3A}
+#wait{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;color:#8EA3C2;font:600 15px system-ui,sans-serif}
+#wait img{width:84px;height:84px}
+</style>
+</head>
+<body>
+<div id="wait"><img src="icon-192.png" alt=""><span>Chargement de Transline…</span></div>
+<script>
+var APP = 'https://script.google.com/macros/s/AKfycbwYCqSywyQgPE_zZVK_jqV-8NGwbzTNgcVymFX1V53CiuhOX_WUOsyawBlrDFnmNT-8/exec';
+var f = document.createElement('iframe');
+f.src = APP + location.search;
+f.allow = 'clipboard-write';
+f.onload = function () { var w = document.getElementById('wait'); if (w) w.remove(); };
+document.body.appendChild(f);
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+</script>
+</body>
+</html>
