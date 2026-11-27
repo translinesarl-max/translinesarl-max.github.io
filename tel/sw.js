@@ -1,4 +1,4 @@
-var C = 'transline-tel-v7';
+var C = 'transline-tel-v8';
 var SHELL = ['./', './index.html', './style.css', './manifest.webmanifest', '../icon-192.png', '../icon-512.png'];
 self.addEventListener('install', function (e) {
   self.skipWaiting();

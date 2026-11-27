@@ -220,7 +220,14 @@ function fitHome() {
   var nh = document.getElementById('nav').offsetHeight;
   if (m.className !== 'home') { m.style.height = ''; document.body.style.paddingBottom = ''; return; }
   document.body.style.paddingBottom = nh + 'px';
-  m.style.height = Math.max(420, window.innerHeight - document.getElementById('top').offsetHeight - nh) + 'px';
+  var H = Math.max(420, window.innerHeight - document.getElementById('top').offsetHeight - nh);
+  m.style.height = H + 'px';
+  var RH = 44, cards = m.querySelectorAll('.hb'), fixed = 20 + 10 * (cards.length - 1);
+  if (cards.length !== 3) return;
+  [].forEach.call(cards, function (c) { fixed += c.querySelector('.band').offsetHeight + 2; });
+  var small = [1, 2].map(function (i) { var n = cards[i].querySelectorAll('.row').length; return n ? Math.min(3, n) * RH : cards[i].querySelector('.list').scrollHeight; });
+  var big = Math.max(RH, Math.floor((H - fixed - small[0] - small[1]) / RH) * RH);
+  [big, small[0], small[1]].forEach(function (h, i) { cards[i].querySelector('.list').style.height = h + 'px'; });
 }
 window.addEventListener('resize', fitHome);
 
