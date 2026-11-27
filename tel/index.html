@@ -355,7 +355,7 @@ loadCache();
 render();
 startPont();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { scope: './' });
-var APPV = '16';
+var APPV = '17';
 function checkVersion() {
   fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = String(v || '').trim(); if (!v || v === APPV) return;
