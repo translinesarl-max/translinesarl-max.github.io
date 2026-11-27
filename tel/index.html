@@ -132,11 +132,15 @@ function dueRow(x) {
     '<span><span class="who">' + esc(x.who) + '</span><br><span class="what">' + what + '</span></span>' +
     '<span class="when"><span class="pill ' + x.s.k + '">' + esc(x.s.txt) + '</span>' + (x.s.rel ? '<small>' + esc(x.s.rel) + '</small>' : '') + '</span></button>';
 }
+function hRow(x) {
+  var what = x.field === 'Mine' ? '<span class="mine">Mine</span>' : esc(x.what);
+  return '<button type="button" class="row c" data-fiche="' + x.table + '" data-id="' + esc(x.id) + '" data-field="' + esc(x.field) + '">' +
+    '<span class="cl"><span class="who">' + esc(x.who) + '</span> <span class="what">' + what + '</span></span><span class="pill ' + x.s.k + '">' + esc(x.s.txt) + '</span></button>';
+}
 function block(table) {
-  var l = dueList(table), n = S.open[table] ? l.length : 6;
-  return '<section class="card"><div class="band"><span>' + TBL[table].label + '</span><b>' + l.length + '</b></div><div class="list">' +
-    (l.length ? l.slice(0, n).map(dueRow).join('') : '<p class="empty">Rien à afficher.</p>') + '</div>' +
-    (l.length > 6 ? '<button type="button" class="more" data-more="' + table + '">' + (S.open[table] ? 'Voir moins' : 'Voir tout (' + l.length + ')') + '</button>' : '') + '</section>';
+  var l = dueList(table);
+  return '<section class="card hb"><div class="band"><span>' + TBL[table].label + '</span><b>' + l.length + '</b></div><div class="list">' +
+    (l.length ? l.map(hRow).join('') : '<p class="empty">Rien à afficher.</p>') + '</div></section>';
 }
 function vHome() { return block('Vehicules') + block('Salaries') + block('Vidanges'); }
 function vVidanges() {
@@ -204,10 +208,21 @@ function render() {
   else if (S.tab === 'sal') h = vList('Salaries');
   else if (S.tab === 'vi') h = vVidanges();
   else h = vHome();
+  m.className = D && S.tab === 'home' ? 'home' : '';
   m.innerHTML = h;
+  fitHome();
   var g1 = document.getElementById('gw'); if (keep && g1) { g1.scrollLeft = keep[0]; g1.scrollTop = keep[1]; }
   renderLayer();
 }
+
+function fitHome() {
+  var m = document.getElementById('main');
+  var nh = document.getElementById('nav').offsetHeight;
+  if (m.className !== 'home') { m.style.height = ''; document.body.style.paddingBottom = ''; return; }
+  document.body.style.paddingBottom = nh + 'px';
+  m.style.height = Math.max(420, window.innerHeight - document.getElementById('top').offsetHeight - nh) + 'px';
+}
+window.addEventListener('resize', fitHome);
 
 /* ---------- Fiches et listes en plein écran (consultation seulement) ---------- */
 function rowOf(table, id) { return ((D && D[table]) || []).filter(function (r) { return r.id === id; })[0]; }
