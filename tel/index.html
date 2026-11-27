@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header id="top"><div class="logo"><div class="t">T</div><div class="lt">Transline<button type="button" class="tick" data-view="conges" aria-label="Voir les congés"><span id="tk"></span></button></div></div><div id="sync" class="sync wait"><span class="dot"></span><span>Mise à jour…</span></div></header>
+<header id="top"><div class="logo"><div class="t">T</div><div class="lt">Transline</div></div><div id="sync" class="sync wait"><span class="dot"></span><span>Mise à jour…</span></div><button type="button" class="tick" data-view="conges" aria-label="Voir les congés"><span id="tk"></span></button></header>
 <main id="main"></main>
 <nav id="nav"></nav>
 <div id="layer"></div>
@@ -352,7 +352,7 @@ loadCache();
 render();
 startPont();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { scope: './' });
-var APPV = '13';
+var APPV = '14';
 function checkVersion() {
   fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = String(v || '').trim(); if (!v || v === APPV) return;
