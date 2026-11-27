@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "fr.transline.app",
+      "sha256_cert_fingerprints": [
+        "C0:F7:1A:B8:45:CF:E1:AF:31:F4:6F:71:54:82:17:9D:54:94:35:4C:FD:48:51:13:52:05:02:43:05:1B:12:47"
+      ]
+    }
+  }
+]
