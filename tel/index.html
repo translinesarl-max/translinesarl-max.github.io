@@ -226,9 +226,12 @@ function fitHome() {
   var RH = 44, cards = m.querySelectorAll('.hb'), fixed = 20 + 10 * (cards.length - 1);
   if (cards.length !== 3) return;
   [].forEach.call(cards, function (c) { fixed += c.querySelector('.band').offsetHeight + 2; });
-  var small = [1, 2].map(function (i) { var n = cards[i].querySelectorAll('.row').length; return n ? Math.min(3, n) * RH : cards[i].querySelector('.list').scrollHeight; });
-  var big = Math.max(RH, Math.floor((H - fixed - small[0] - small[1]) / RH) * RH);
-  [big, small[0], small[1]].forEach(function (h, i) { cards[i].querySelector('.list').style.height = h + 'px'; });
+  var A = H - fixed, sr = [0, 0, 0], px = [0, 0, 0];
+  [1, 2].forEach(function (i) { var n = cards[i].querySelectorAll('.row').length; if (n) sr[i] = Math.min(3, n); else { px[i] = cards[i].querySelector('.list').scrollHeight; A -= px[i]; } });
+  var n = Math.floor(A / RH); if (A / (n + 1) >= 40) { n++; RH = Math.floor(A / n); }
+  m.style.setProperty('--rh', RH + 'px');
+  sr[0] = Math.max(1, n - sr[1] - sr[2]);
+  [0, 1, 2].forEach(function (i) { cards[i].querySelector('.list').style.height = (sr[i] ? sr[i] * RH : px[i]) + 'px'; });
 }
 window.addEventListener('resize', function () { fitHome(); renderTick(); });
 function fmtC(d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); }
@@ -352,7 +355,7 @@ loadCache();
 render();
 startPont();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { scope: './' });
-var APPV = '14';
+var APPV = '15';
 function checkVersion() {
   fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = String(v || '').trim(); if (!v || v === APPV) return;

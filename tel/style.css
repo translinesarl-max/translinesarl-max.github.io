@@ -142,3 +142,4 @@ header#top{flex-wrap:wrap;padding:calc(8px + env(safe-area-inset-top)) 14px 8px;
 nav{padding:3px 6px calc(3px + env(safe-area-inset-bottom))}
 nav button{gap:0;font-size:10.5px;padding:3px 0;border-radius:8px}
 nav button svg{width:20px;height:20px}
+main.home .hb .row.c{height:var(--rh,44px);min-height:var(--rh,44px)}
