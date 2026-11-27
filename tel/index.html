@@ -245,7 +245,7 @@ function renderTick() {
     it.push({ s: cur ? 0 : 1, d: f, h: '<i class="d ' + col + '"></i><b>' + esc(c['Salarié']) + '</b> ' + txt });
   });
   it.sort(function (a, b) { return a.s - b.s || a.d - b.d; });
-  var html = it.length ? 'Congés : ' + it.map(function (x) { return x.h; }).join(' · ') : (D ? 'Aucun congé prévu' : 'Suivi de flotte');
+  var html = it.length ? 'Congés : ' + it.map(function (x) { return x.h; }).join('<span class="sp"></span>') : (D ? 'Aucun congé prévu' : 'Suivi de flotte');
   sp.className = ''; sp.style.animationDuration = ''; sp.innerHTML = html;
   if (sp.scrollWidth > b.clientWidth + 2) {
     sp.innerHTML = html + '<span class="gap"></span>' + html + '<span class="gap"></span>';
@@ -355,7 +355,7 @@ loadCache();
 render();
 startPont();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { scope: './' });
-var APPV = '15';
+var APPV = '16';
 function checkVersion() {
   fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
     v = String(v || '').trim(); if (!v || v === APPV) return;
