@@ -352,6 +352,16 @@ loadCache();
 render();
 startPont();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js', { scope: './' });
+var APPV = '13';
+function checkVersion() {
+  fetch('version.txt?t=' + Date.now(), { cache: 'no-store' }).then(function (r) { return r.ok ? r.text() : ''; }).then(function (v) {
+    v = String(v || '').trim(); if (!v || v === APPV) return;
+    try { if (sessionStorage.getItem('maj' + v)) return; sessionStorage.setItem('maj' + v, '1'); } catch (e) {}
+    (window.caches ? caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }) : Promise.resolve()).then(function () { location.reload(); });
+  }).catch(function () {});
+}
+checkVersion();
+document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') checkVersion(); });
 </script>
 </body>
 </html>
