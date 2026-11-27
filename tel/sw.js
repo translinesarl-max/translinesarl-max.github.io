@@ -1,4 +1,4 @@
-var C = 'transline-tel-v2';
+var C = 'transline-tel-v3';
 var SHELL = ['./', './index.html', './style.css', './manifest.webmanifest', '../icon-192.png', '../icon-512.png'];
 self.addEventListener('install', function (e) { self.skipWaiting(); e.waitUntil(caches.open(C).then(function (c) { return c.addAll(SHELL); })); });
 self.addEventListener('activate', function (e) { e.waitUntil(self.clients.claim()); });
