@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header id="top"><div class="logo"><div class="t">T</div><div>Transline<small>Suivi de flotte</small></div></div><div id="sync" class="sync wait"><span class="dot"></span><span>Mise à jour…</span></div></header>
+<header id="top"><div class="logo"><div class="t">T</div><div class="lt">Transline<button type="button" class="tick" data-view="conges" aria-label="Voir les congés"><span id="tk"></span></button></div></div><div id="sync" class="sync wait"><span class="dot"></span><span>Mise à jour…</span></div></header>
 <main id="main"></main>
 <nav id="nav"></nav>
 <div id="layer"></div>
@@ -201,7 +201,7 @@ function vBoot() {
 }
 function render() {
   TODAY = TODAY || today();
-  renderNav(); renderSync();
+  renderNav(); renderSync(); renderTick();
   var m = document.getElementById('main'), h, g0 = document.getElementById('gw'), keep = g0 && S.tab === 'pl' ? [g0.scrollLeft, g0.scrollTop] : null;
   if (!D) h = vBoot();
   else if (S.tab === 'pl') h = vPlanning();
@@ -230,7 +230,25 @@ function fitHome() {
   var big = Math.max(RH, Math.floor((H - fixed - small[0] - small[1]) / RH) * RH);
   [big, small[0], small[1]].forEach(function (h, i) { cards[i].querySelector('.list').style.height = h + 'px'; });
 }
-window.addEventListener('resize', fitHome);
+window.addEventListener('resize', function () { fitHome(); renderTick(); });
+function fmtC(d) { return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0'); }
+function renderTick() {
+  var b = document.querySelector('#top .tick'), sp = document.getElementById('tk'); if (!b || !sp) return;
+  var it = [];
+  ((D && D.Conges) || []).forEach(function (c) {
+    var f = parse(c['Début']), t = parse(c.Fin) || f; if (!f || t < TODAY) return;
+    var j = c.Type && c.Type !== 'Congés', cur = f <= TODAY, col = cur ? 'y' : days(f) <= 45 ? 'r' : 'g';
+    var txt = j ? 'journée ' + (cur ? "aujourd'hui" : fmtC(f)) : cur ? 'retour ' + fmtC(new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1)) : 'part ' + fmtC(f);
+    it.push({ s: cur ? 0 : 1, d: f, h: '<i class="d ' + col + '"></i><b>' + esc(c['Salarié']) + '</b> ' + txt });
+  });
+  it.sort(function (a, b) { return a.s - b.s || a.d - b.d; });
+  var html = it.length ? 'Congés : ' + it.map(function (x) { return x.h; }).join(' · ') : (D ? 'Aucun congé prévu' : 'Suivi de flotte');
+  sp.className = ''; sp.style.animationDuration = ''; sp.innerHTML = html;
+  if (sp.scrollWidth > b.clientWidth + 2) {
+    sp.innerHTML = html + '<span class="gap"></span>' + html + '<span class="gap"></span>';
+    sp.className = 'run'; sp.style.animationDuration = Math.max(8, Math.round(sp.scrollWidth / 2 / 35)) + 's';
+  }
+}
 
 /* ---------- Fiches et listes en plein écran (consultation seulement) ---------- */
 function rowOf(table, id) { return ((D && D[table]) || []).filter(function (r) { return r.id === id; })[0]; }
