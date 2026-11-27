@@ -50,7 +50,7 @@ function stat(v) {
   return { k: n < 0 ? 'r' : n <= 30 ? 'o' : n <= 90 ? 'y' : '', txt: fmt(d), days: n,
     rel: n < 0 ? 'en retard de ' + (-n) + ' j' : n === 0 ? "aujourd'hui" : 'dans ' + n + ' j' };
 }
-function statM(v) { var d = parse(v); if (!d) return null; return { k: '', txt: MOIS_C[d.getMonth()] + ' ' + d.getFullYear(), days: days(d), rel: '' }; }
+function statM(v) { var d = parse(v); if (!d) return null; var n = (d.getFullYear() - TODAY.getFullYear()) * 12 + d.getMonth() - TODAY.getMonth(); return { k: n <= 0 ? 'r' : '', txt: String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(), days: days(d), rel: '' }; }
 function setting(k) { var r = ((D && D.Reglages) || []).filter(function (x) { return x['Clé'] === k; })[0]; return r ? r.Valeur : ''; }
 function lines(k) { return String(setting(k) || '').split('\n').map(function (x) { return x.trim(); }).filter(Boolean); }
 function pclass(v) { return !v ? 'none' : (v === 'Pêche' || v === JOUR_PL) ? 'red' : v === 'Geodis 95' ? 'gre' : v === 'Congés' ? 'blu' : ''; }
@@ -148,7 +148,7 @@ function vVidanges() {
   return '<section class="card"><div class="band"><span>Vidanges</span><b>' + rows.length + '</b></div><div class="list">' + (rows.map(function (r) {
     var m = statM(r['Prochaine vidange']), bx = statM(r['Vidange boîte']);
     return '<button type="button" class="row" data-fiche="Vidanges" data-id="' + esc(r.id) + '" data-field="Prochaine vidange"><span><span class="who">' + esc(r['Véhicule']) + '</span><br><span class="what">Moteur' + (bx ? ' · boîte ' + esc(bx.txt) : '') + '</span></span>' +
-      '<span class="when"><span class="pill">' + esc(m ? m.txt : '—') + '</span></span></button>';
+      '<span class="when"><span class="pill ' + (m ? m.k : '') + '">' + esc(m ? m.txt : '—') + '</span></span></button>';
   }).join('') || '<p class="empty">Aucune vidange.</p>') + '</div></section>';
 }
 function isWork(d) { return d.getDay() !== 0 && d.getDay() !== 6; }
