@@ -237,7 +237,7 @@ function renderTick() {
   var it = [];
   ((D && D.Conges) || []).forEach(function (c) {
     var f = parse(c['Début']), t = parse(c.Fin) || f; if (!f || t < TODAY) return;
-    var j = c.Type && c.Type !== 'Congés', cur = f <= TODAY, col = cur ? 'y' : days(f) <= 45 ? 'r' : 'g';
+    var j = c.Type && c.Type !== 'Congés', cur = f <= TODAY; if (j && cur) return; var col = cur ? 'y' : days(f) <= 45 ? 'r' : 'g';
     var txt = j ? 'journée ' + (cur ? "aujourd'hui" : fmtC(f)) : cur ? 'retour ' + fmtC(new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1)) : 'part ' + fmtC(f);
     it.push({ s: cur ? 0 : 1, d: f, h: '<i class="d ' + col + '"></i><b>' + esc(c['Salarié']) + '</b> ' + txt });
   });
