@@ -155,25 +155,27 @@ function offOn(who, d) {
   var c = (D.Conges || []).filter(function (c) { var f = parse(c['Début']), t = parse(c.Fin) || f; return c['Salarié'] === who && f && f <= d && t >= d; })[0];
   return c ? c.Type || 'Congés' : '';
 }
+var ABR = { 'Geodis 95': 'Geo 95', 'BM France': 'BM Fr', 'BM Italie': 'BM It', 'Prend sa journée': 'Journée', 'Relais nuit': 'Relais', 'FÉRIÉ': 'Férié' };
+function abr(v) { return ABR[v] || (v.length > 7 ? v.slice(0, 6) + '.' : v); }
 function vPlanning() {
   if (!S.month) S.month = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1);
-  var y = S.month.getFullYear(), mo = S.month.getMonth(), drivers = lines('conducteurs');
+  var y = S.month.getFullYear(), mo = S.month.getMonth(), drivers = lines('conducteurs').slice(0, 6);
   var stab = {}; lines('stabilo').forEach(function (k) { stab[k] = true; });
   var notes = {}; try { notes = JSON.parse(setting('notes_cases') || '{}') || {}; } catch (e) {}
   var h = '<div class="mbar"><button type="button" data-month="-1" aria-label="Mois précédent">‹</button><h2>' + MOIS[mo] + ' ' + y + '</h2><button type="button" data-month="1" aria-label="Mois suivant">›</button></div>';
   if (!drivers.length) return h + '<p class="empty">Aucun conducteur dans le planning.</p>';
-  h += '<div class="gridwrap" id="gw"><table class="grid"><thead><tr><th class="dh">Date</th>' + drivers.map(function (d) { return '<th>' + esc(d) + '</th>'; }).join('') + '<th>Remarques</th></tr></thead><tbody>';
+  h += '<div class="pvwrap"><table class="pv"><thead><tr><th class="pd"></th>' + drivers.map(function (d) { return '<th>' + esc(d.length > 8 ? d.slice(0, 7) + '.' : d) + '</th>'; }).join('') + '</tr></thead><tbody>';
   for (var d = new Date(y, mo, 1); d.getMonth() === mo; d.setDate(d.getDate() + 1)) {
     if (!isWork(d)) continue;
-    var di = iso(d), rem = ((D.Remarques || []).filter(function (x) { return x.Date === di; })[0] || {}).Remarque || '';
-    h += '<tr' + (di === iso(TODAY) ? ' class="today" id="today"' : '') + '><td class="d">' + String(d.getDate()).padStart(2, '0') + '/' + String(mo + 1).padStart(2, '0') + '<small>' + JOURS_C[d.getDay()] + '</small></td>';
+    var di = iso(d);
+    h += '<tr' + (di === iso(TODAY) ? ' class="today"' : '') + '><td class="pd">' + d.getDate() + '<small>' + JOURS_C[d.getDay()].slice(0, 2) + '</small></td>';
     drivers.forEach(function (who) {
-      var v = planVal(di, who), k = di + '|' + who, nt = notes[k] || '';
-      h += '<td' + (stab[k] ? ' class="hl"' : '') + '><button type="button" class="cell ' + pclass(v) + (nt ? ' nt' : '') + '" data-cell="' + di + '" data-who="' + esc(who) + '"><span>' + esc(v) + '</span>' + (nt ? '<small>' + esc(nt) + '</small>' : '') + '</button></td>';
+      var v = planVal(di, who), k = di + '|' + who;
+      h += '<td class="' + (v ? pclass(v) : '') + (stab[k] ? ' hl' : '') + (notes[k] ? ' nt' : '') + '">' + (v ? '<span>' + esc(abr(v)) + '</span>' : '') + '</td>';
     });
-    h += '<td class="rem">' + esc(rem) + '</td></tr>';
+    h += '</tr>';
   }
-  return h + '</tbody></table></div><p class="hint">Glissez le doigt pour voir tous les conducteurs · touchez une case pour la changer</p>';
+  return h + '</tbody></table></div><p class="hint">Consultation seulement · le planning se modifie sur l’ordinateur</p>';
 }
 function vList(table) {
   var c = TBL[table], q = S.q.toLowerCase();
@@ -204,7 +206,6 @@ function render() {
   else h = vHome();
   m.innerHTML = h;
   var g1 = document.getElementById('gw'); if (keep && g1) { g1.scrollLeft = keep[0]; g1.scrollTop = keep[1]; }
-  if (S.tab === 'pl' && S.scrollToday) { S.scrollToday = false; var tr = document.getElementById('today'), gw = document.getElementById('gw'); if (tr && gw) gw.scrollTop = Math.max(0, tr.offsetTop - 60); }
   renderLayer();
 }
 
@@ -262,7 +263,7 @@ document.addEventListener('click', function (e) {
   if (b.dataset.tab) {
     var t = b.dataset.tab; if (t === S.tab) { window.scrollTo(0, 0); return; }
     if (S.tab === 'home') push('tab'); else if (t === 'home') { history.back(); return; }
-    S.tab = t; S.q = ''; if (t === 'pl') { S.month = null; S.scrollToday = true; } window.scrollTo(0, 0); render(); return;
+    S.tab = t; S.q = ''; if (t === 'pl') S.month = null; window.scrollTo(0, 0); render(); return;
   }
   if (b.dataset.more) { S.open[b.dataset.more] = !S.open[b.dataset.more]; render(); return; }
   if (b.dataset.fiche) { var prev = S.fiche; S.fiche = { table: b.dataset.fiche, id: b.dataset.id, field: b.dataset.field || '', prev: prev }; push('fiche'); renderLayer(); return; }
