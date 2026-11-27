@@ -121,3 +121,4 @@ main.home .hb .row.c:last-child{border-bottom:1px solid transparent}
 .row.c .what{font-size:13px;margin-left:4px}
 .row.c .mine{margin-left:4px;vertical-align:1px}
 .layer .body>*{flex-shrink:0}
+.band b.nr{background:#DC2626;color:#fff;border-radius:999px;padding:2px 10px;font-size:13px;font-weight:800}

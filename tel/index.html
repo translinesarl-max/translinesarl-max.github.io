@@ -138,14 +138,15 @@ function hRow(x) {
     '<span class="cl"><span class="who">' + esc(x.who) + '</span> <span class="what">' + what + '</span></span><span class="pill ' + x.s.k + '">' + esc(x.s.txt) + '</span></button>';
 }
 function block(table) {
-  var l = dueList(table);
-  return '<section class="card hb"><div class="band"><span>' + TBL[table].label + '</span><b>' + l.length + '</b></div><div class="list">' +
+  var l = dueList(table), nr = l.filter(function (x) { return x.s.k === 'r'; }).length;
+  return '<section class="card hb"><div class="band"><span>' + TBL[table].label + '</span>' + nrB(nr) + '</div><div class="list">' +
     (l.length ? l.map(hRow).join('') : '<p class="empty">Rien à afficher.</p>') + '</div></section>';
 }
+function nrB(n) { return n ? '<b class="nr">' + n + '</b>' : ''; }
 function vHome() { return block('Vehicules') + block('Salaries') + block('Vidanges'); }
 function vVidanges() {
   var rows = ((D && D.Vidanges) || []).slice().sort(function (a, b) { return ((parse(a['Prochaine vidange']) || 9e15) - (parse(b['Prochaine vidange']) || 9e15)) || String(a['Véhicule']).localeCompare(String(b['Véhicule']), 'fr', { numeric: true }); });
-  return '<section class="card"><div class="band"><span>Vidanges</span><b>' + rows.length + '</b></div><div class="list">' + (rows.map(function (r) {
+  return '<section class="card"><div class="band"><span>Vidanges</span>' + nrB(rows.filter(function (r) { var m = statM(r['Prochaine vidange']); return m && m.k === 'r'; }).length) + '</div><div class="list">' + (rows.map(function (r) {
     var m = statM(r['Prochaine vidange']), bx = statM(r['Vidange boîte']);
     return '<button type="button" class="row" data-fiche="Vidanges" data-id="' + esc(r.id) + '" data-field="Prochaine vidange"><span><span class="who">' + esc(r['Véhicule']) + '</span><br><span class="what">Moteur' + (bx ? ' · boîte ' + esc(bx.txt) : '') + '</span></span>' +
       '<span class="when"><span class="pill ' + (m ? m.k : '') + '">' + esc(m ? m.txt : '—') + '</span></span></button>';
@@ -186,7 +187,7 @@ function vList(table) {
     .sort(function (a, b) { return String(a[c.name]).localeCompare(String(b[c.name]), 'fr', { numeric: true }); });
   var h = '<input class="search" id="q" type="search" placeholder="' + (table === 'Vehicules' ? 'Chercher un camion' : 'Chercher un salarié') + '" value="' + esc(S.q) + '">';
   if (table === 'Salaries') h += '<div class="twobtn"><button type="button" class="btn" data-view="conges">Congés et journées</button><button type="button" class="btn" data-view="aco">Acomptes</button></div>';
-  return h + '<section class="card"><div class="band"><span>' + (table === 'Vehicules' ? 'Camions' : 'Salariés') + '</span><b>' + rows.length + '</b></div><div class="list">' + (rows.map(function (r) {
+  return h + '<section class="card"><div class="band"><span>' + (table === 'Vehicules' ? 'Camions' : 'Salariés') + '</span>' + nrB(rows.filter(function (r) { return c.dates.some(function (f) { var s = stat(r[f]); return s && s.k === 'r'; }); }).length) + '</div><div class="list">' + (rows.map(function (r) {
     var worst = null;
     c.dates.forEach(function (f) { var s = stat(r[f]); if (s && (!worst || s.days < worst.days)) { worst = s; worst.f = f; } });
     return '<button type="button" class="row" data-fiche="' + table + '" data-id="' + esc(r.id) + '"><span><span class="who">' + esc(r[c.name]) + '</span>' +
