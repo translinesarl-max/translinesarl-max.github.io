@@ -27,7 +27,7 @@ var TBL = {
   Vidanges:  { name: 'Véhicule', dates: ['Prochaine vidange'], label: 'Vidanges' }
 };
 var D = null, TODAY;
-var S = { tab: 'home', sync: 'wait', fresh: false, month: null, open: {}, fiche: null, sheet: null, q: '' };
+var S = { tab: 'home', sync: 'wait', fresh: false, month: null, open: {}, fiche: null, q: '' };
 var MOIS = ['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
 var JOURS_C = ['Dim','Lun','Mar','Mer','Jeu','Ven','Sam'];
 
@@ -85,8 +85,7 @@ window.addEventListener('message', function (e) {
     pontWin = pontWin || e.source; clearTimeout(waitT);
     D = m.data; S.at = m.at || Date.now(); S.fresh = true; S.sync = 'ok'; saveCache();
     var r0 = reqs[m.reqId]; delete reqs[m.reqId]; if (r0 && r0.done) r0.done();
-    if (S.fiche || S.sheet) { renderSync(); document.querySelectorAll('#layer [disabled]').forEach(function (x) { x.disabled = false; }); document.querySelectorAll('#layer .note').forEach(function (x) { x.remove(); }); }
-    else render();
+    render();
     return;
   }
   var r = reqs[m.reqId]; delete reqs[m.reqId];
@@ -182,6 +181,7 @@ function vList(table) {
   var rows = ((D && D[table]) || []).filter(function (r) { return !q || String(r[c.name]).toLowerCase().indexOf(q) >= 0; })
     .sort(function (a, b) { return String(a[c.name]).localeCompare(String(b[c.name]), 'fr', { numeric: true }); });
   var h = '<input class="search" id="q" type="search" placeholder="' + (table === 'Vehicules' ? 'Chercher un camion' : 'Chercher un salarié') + '" value="' + esc(S.q) + '">';
+  if (table === 'Salaries') h += '<div class="twobtn"><button type="button" class="btn" data-view="conges">Congés et journées</button><button type="button" class="btn" data-view="aco">Acomptes</button></div>';
   return h + '<section class="card"><div class="band"><span>' + (table === 'Vehicules' ? 'Camions' : 'Salariés') + '</span><b>' + rows.length + '</b></div><div class="list">' + (rows.map(function (r) {
     var worst = null;
     c.dates.forEach(function (f) { var s = stat(r[f]); if (s && (!worst || s.days < worst.days)) { worst = s; worst.f = f; } });
@@ -209,47 +209,76 @@ function render() {
   renderLayer();
 }
 
-/* ---------- Fiche plein écran et choix du planning ---------- */
+/* ---------- Fiches et listes en plein écran (consultation seulement) ---------- */
 function rowOf(table, id) { return ((D && D[table]) || []).filter(function (r) { return r.id === id; })[0]; }
+function num(v) { return +String(v || '').replace(/\s/g, '').replace(',', '.') || 0; }
+function money(n) { return (Math.round(num(n) * 100) / 100).toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €'; }
+function kmTxt(v) { var n = num(v); return n ? Math.round(n).toLocaleString('fr-FR') + ' km' : ''; }
+function dline(label, s, focus) {
+  return '<div class="row ro' + (focus ? ' focus' : '') + '"><span class="who">' + label + '</span><span class="when">' + (s ? '<span class="pill ' + s.k + '">' + esc(s.txt) + '</span>' + (s.rel ? '<small>' + esc(s.rel) + '</small>' : '') : '<span class="pill">—</span>') + '</span></div>';
+}
+function card(title, nb, inner) { return '<section class="card"><div class="band"><span>' + title + '</span>' + (nb != null ? '<b>' + nb + '</b>' : '') + '</div><div class="list">' + inner + '</div></section>'; }
+function congeRows(list) {
+  return list.map(function (c) {
+    var f = parse(c['Début']), t = parse(c.Fin) || f, k = !f ? '' : t < TODAY ? '' : f <= TODAY ? 'y' : days(f) <= 45 ? 'r' : 'g';
+    return '<div class="row ro"><span><span class="who">' + esc(c['Salarié']) + '</span><br><span class="what">' + esc(c.Type || 'Congés') + '</span></span><span class="when"><span class="pill ' + (c.Type === 'Congés' ? k : '') + '">' + (f ? fmt(f) : '—') + '</span>' + (t && +t !== +f ? '<small>au ' + fmt(t) + '</small>' : '') + '</span></div>';
+  }).join('');
+}
+function acoRows(list, withName) {
+  return list.map(function (r) {
+    var d = parse(r.Date);
+    return '<div class="row ro"><span><span class="who">' + (withName ? esc(r['Salarié']) : (d ? fmt(d) : '—')) + '</span><br><span class="what">' + (withName && d ? fmt(d) + ' · ' : '') + esc(r['Mode de paiement'] || '') + (r['À retenir sur la paie de'] ? ' · paie de ' + esc(r['À retenir sur la paie de']) : '') + (r.Remarques ? ' · ' + esc(r.Remarques) : '') + '</span></span><span class="when"><span class="pill">' + money(r.Montant) + '</span></span></div>';
+  }).join('');
+}
+function sortCg(list) {
+  var rank = function (c) { var f = parse(c['Début']), t = parse(c.Fin) || f; return !f ? 3 : t < TODAY ? 3 : f <= TODAY ? 0 : 1; };
+  return list.slice().sort(function (a, b) { var ra = rank(a), rb = rank(b); if (ra !== rb) return ra - rb; var fa = parse(a['Début']) || 0, fb = parse(b['Début']) || 0; return ra === 3 ? fb - fa : fa - fb; });
+}
+function byDateDesc(list) { return list.slice().sort(function (a, b) { return (parse(b.Date) || 0) - (parse(a.Date) || 0); }); }
+function vEntretien(veh) {
+  var l = byDateDesc((D.Entretien || []).filter(function (e) { return e['Véhicule'] === veh; }));
+  return card('Carnet d’entretien', l.length, l.map(function (e) {
+    var d = parse(e.Date), sub = [e.Type, kmTxt(e['Kilométrage']), e.Garage].filter(Boolean).join(' · ');
+    return '<div class="row ro top"><span><span class="who">' + (d ? fmt(d) : '—') + '</span><br><span class="what">' + esc(sub) + '</span>' + (e.Description ? '<span class="desc">' + esc(e.Description) + '</span>' : '') + (e.Remarques ? '<span class="desc mu">' + esc(e.Remarques) + '</span>' : '') + '</span>' +
+      '<span class="when">' + (num(e['Montant HT']) ? '<span class="pill">' + money(e['Montant HT']) + ' HT</span>' : '') + (e['N° de facture'] ? '<small>Fact. ' + esc(e['N° de facture']) + '</small>' : '') + '</span></div>';
+  }).join('') || '<p class="empty">Aucune intervention enregistrée.</p>');
+}
+function layerShell(title, body) {
+  return '<div class="layer"><header><div class="logo"><button type="button" class="back" data-act="close" aria-label="Retour">‹</button>' + esc(title) + '</div>' + document.getElementById('sync').outerHTML.replace('id="sync"', '') + '</header><div class="body">' + body + '<p class="hint" style="margin-top:12px">Consultation seulement · les modifications se font sur l’ordinateur</p></div></div>';
+}
 function renderLayer() {
-  var L = document.getElementById('layer'), h = '';
-  if (S.fiche) {
-    var F = S.fiche, r = rowOf(F.table, F.id), c = TBL[F.table];
-    if (!r) { S.fiche = null; } else {
-      var month = F.table === 'Vidanges';
-      var fields = month ? ['Prochaine vidange', 'Vidange boîte', 'Km boîte'] : c.dates.slice();
-      if (F.table === 'Vehicules') { var vd = (D.Vidanges || []).filter(function (x) { return x['Véhicule'] === r['Véhicule']; })[0]; }
-      h = '<div class="layer"><header><div class="logo"><button type="button" class="back" data-act="close" aria-label="Retour">‹</button>' + esc(r[c.name]) + '</div>' + document.getElementById('sync').outerHTML.replace('id="sync"', '') + '</header><div class="body">' +
-        (S.fresh ? '' : '<div class="note">Mise à jour des données en cours : vous pourrez enregistrer dans un instant.</div>') +
-        fields.map(function (f) {
-          if (f === 'Km boîte') return '<label class="fld"><span>Vidange boîte (km)</span><input type="number" inputmode="numeric" data-f="Km boîte" value="' + esc(r[f] || '') + '"></label>';
-          var v = parse(r[f]), val = v ? (month ? iso(v).slice(0, 7) : iso(v)) : '';
-          var s = month ? null : stat(r[f]);
-          return '<label class="fld' + (F.field === f ? ' focus' : '') + '"><span>' + (month ? (f === 'Vidange boîte' ? 'Vidange boîte (mois)' : 'Vidange moteur (mois)') : f === 'Mine' ? 'Mine (contrôle technique)' : esc(f)) + (s ? '<em style="font-style:normal">' + esc(s.rel) + '</em>' : '') + '</span>' +
-            '<input type="' + (month ? 'month' : 'date') + '" data-f="' + esc(f) + '" value="' + val + '"></label>';
-        }).join('') +
-        (vd ? '<button type="button" class="row" data-fiche="Vidanges" data-id="' + esc(vd.id) + '" data-field="Prochaine vidange"><span><span class="who">Vidange moteur</span></span><span class="when">' + esc((statM(vd['Prochaine vidange']) || { txt: '—' }).txt) + '</span></button>' : '') +
-        '<p class="hint">Laissez une date vide si elle ne s’applique pas.</p></div>' +
-        '<div class="btns"><button type="button" class="btn" data-act="close">Annuler</button><button type="button" class="btn pri" data-act="savefiche"' + (S.fresh ? '' : ' disabled') + '>Enregistrer</button></div></div>';
+  var L = document.getElementById('layer'), h = '', F = S.fiche;
+  if (F && F.view === 'conges') {
+    var cg = sortCg(D.Conges || []), isC = function (c) { return c.Type === 'Congés'; };
+    h = layerShell('Congés et journées', card('Congés', cg.filter(isC).length, congeRows(cg.filter(isC)) || '<p class="empty">Aucun congé.</p>') + card('Journées', cg.filter(function (c) { return !isC(c); }).length, congeRows(cg.filter(function (c) { return !isC(c); })) || '<p class="empty">Aucune journée.</p>'));
+  } else if (F && F.view === 'aco') {
+    var ac = byDateDesc(D.Acomptes || []), tot = 0, nb = 0;
+    ac.forEach(function (r) { var d = parse(r.Date); if (d && d.getMonth() === TODAY.getMonth() && d.getFullYear() === TODAY.getFullYear()) { tot += num(r.Montant); nb++; } });
+    h = layerShell('Acomptes', '<div class="kpi"><div><small>Versés en ' + MOIS[TODAY.getMonth()] + '</small><b>' + money(tot) + '</b></div><div><small>Nombre ce mois</small><b>' + nb + '</b></div></div>' + card('Acomptes', ac.length, acoRows(ac, true) || '<p class="empty">Aucun acompte.</p>'));
+  } else if (F) {
+    var r = rowOf(F.table, F.id), c = TBL[F.table];
+    if (!r) S.fiche = null;
+    else if (F.table === 'Vidanges') {
+      var bx = statM(r['Vidange boîte']);
+      h = layerShell('Vidanges ' + r['Véhicule'], card('Vidanges', null, dline('Vidange moteur', statM(r['Prochaine vidange']), F.field === 'Prochaine vidange') + dline('Vidange boîte', bx) + (kmTxt(r['Km boîte']) ? '<div class="row ro"><span class="who">Boîte (km)</span><span class="when"><span class="pill">' + kmTxt(r['Km boîte']) + '</span></span></div>' : '')) + vEntretien(r['Véhicule']));
+    } else if (F.table === 'Vehicules') {
+      var vd = (D.Vidanges || []).filter(function (x) { return x['Véhicule'] === r['Véhicule']; })[0];
+      h = layerShell(r['Véhicule'], card('Échéances', null, c.dates.map(function (f) { return dline(f === 'Mine' ? '<span class="mine">Mine</span>' : esc(f), stat(r[f]), F.field === f); }).join('') +
+        (vd ? dline('Vidange moteur', statM(vd['Prochaine vidange'])) : '') + (r.Pneus ? '<div class="row ro"><span class="who">Pneus</span><span class="when"><span class="pill">' + esc(r.Pneus) + '</span></span></div>' : '')) + vEntretien(r['Véhicule']));
+    } else {
+      var who = r.Nom, cgs = sortCg((D.Conges || []).filter(function (x) { return x['Salarié'] === who; })), acs = byDateDesc((D.Acomptes || []).filter(function (x) { return x['Salarié'] === who; }));
+      h = layerShell(who, card('Échéances', null, c.dates.map(function (f) { return dline(esc(f), stat(r[f]), F.field === f); }).join('')) +
+        card('Congés et journées', cgs.length, congeRows(cgs) || '<p class="empty">Aucun congé ni journée.</p>') + card('Acomptes', acs.length, acoRows(acs, false) || '<p class="empty">Aucun acompte.</p>'));
     }
   }
-  if (S.sheet) {
-    var who = S.sheet.who, sd = parse(S.sheet.date), cur = planVal(S.sheet.date, who), choix = lines('choix');
-    if (cur && choix.indexOf(cur) < 0) choix.push(cur);
-    h += '<div class="shade" data-act="closesheet"><div class="sheet" data-stop="1"><div class="grab"></div><h3>' + esc(who) + ' · ' + JOURS[sd.getDay()].toLowerCase() + ' ' + sd.getDate() + ' ' + MOIS_C[sd.getMonth()] + '</h3>' +
-      (S.fresh ? '' : '<div class="note">Mise à jour en cours : réessayez dans un instant.</div>') +
-      choix.map(function (c) { return '<button type="button" class="opt' + (c === cur ? ' cur' : '') + '" data-val="' + esc(c) + '"' + (S.fresh ? '' : ' disabled') + '>' + esc(c) + '</button>'; }).join('') +
-      (cur ? '<button type="button" class="opt" data-val=""' + (S.fresh ? '' : ' disabled') + ' style="color:var(--mu)">Vider la case</button>' : '') + '</div></div>';
-  }
   L.innerHTML = h;
-  if (S.fiche && S.fiche.field) { var fe = L.querySelector('.fld.focus'); if (fe) fe.scrollIntoView({ block: 'center' }); }
+  var fe = L.querySelector('.row.focus'); if (fe) fe.scrollIntoView({ block: 'center' });
 }
 
 /* ---------- Navigation (bouton retour Android) ---------- */
 function push(kind) { history.pushState({ k: kind }, ''); }
 window.addEventListener('popstate', function () {
-  if (S.sheet) S.sheet = null;
-  else if (S.fiche) S.fiche = S.fiche.prev || null;
+  if (S.fiche) S.fiche = S.fiche.prev || null;
   else if (S.tab !== 'home') { S.tab = 'home'; S.q = ''; window.scrollTo(0, 0); }
   render();
 });
@@ -268,36 +297,12 @@ document.addEventListener('click', function (e) {
   if (b.dataset.more) { S.open[b.dataset.more] = !S.open[b.dataset.more]; render(); return; }
   if (b.dataset.fiche) { var prev = S.fiche; S.fiche = { table: b.dataset.fiche, id: b.dataset.id, field: b.dataset.field || '', prev: prev }; push('fiche'); renderLayer(); return; }
   if (b.dataset.month) { S.month = new Date(S.month.getFullYear(), S.month.getMonth() + (+b.dataset.month), 1); render(); return; }
-  if (b.dataset.cell) { S.sheet = { who: b.dataset.who, date: b.dataset.cell }; push('sheet'); renderLayer(); return; }
-  if (b.dataset.val != null && S.sheet) { setPlan(S.sheet.who, b.dataset.val); return; }
+  if (b.dataset.view) { S.fiche = { view: b.dataset.view, prev: S.fiche }; push('fiche'); renderLayer(); return; }
   if (a === 'close') { closeTop(); return; }
-  if (a === 'closesheet' && e.target === b) { closeTop(); return; }
-  if (a === 'savefiche') { saveFiche(); return; }
   if (a === 'retry') { startPont(); render(); return; }
   if (a === 'login') { location.href = APP; return; }
 });
 document.addEventListener('input', function (e) { if (e.target.id === 'q') { S.q = e.target.value; var p = e.target.selectionStart; render(); var q = document.getElementById('q'); q.focus(); q.setSelectionRange(p, p); } });
-
-function setPlan(who, val) {
-  if (!S.fresh) return;
-  var di = S.sheet.date;
-  D.Planning = D.Planning.filter(function (x) { return !(x.Date === di && x.Conducteur === who); });
-  if (val) D.Planning.push({ id: 'tmp', Date: di, Conducteur: who, Valeur: val });
-  saveCache(); closeTop();
-  S.sync = 'wait'; renderSync();
-  ask({ cmd: 'plan', date: di, who: who, value: val }, function () { S.sync = 'ok'; renderSync(); toast('Planning enregistré'); },
-    function (err) { toast('Erreur : ' + err); refresh(); });
-}
-function saveFiche() {
-  if (!S.fresh || !S.fiche) return;
-  var F = S.fiche, r = rowOf(F.table, F.id); if (!r) return;
-  var obj = Object.assign({}, r);
-  document.querySelectorAll('#layer [data-f]').forEach(function (el) { obj[el.dataset.f] = el.value.trim(); });
-  Object.assign(r, obj); saveCache(); closeTop();
-  S.sync = 'wait'; renderSync();
-  ask({ cmd: 'save', table: F.table, obj: obj }, function () { S.sync = 'ok'; renderSync(); toast('Fiche enregistrée'); },
-    function (err) { toast('Erreur : ' + err); refresh(); });
-}
 
 /* ---------- Démarrage ---------- */
 TODAY = today();

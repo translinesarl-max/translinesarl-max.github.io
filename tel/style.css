@@ -96,3 +96,16 @@ table.pv td.hl{background:#FDE047 !important}
 table.pv td.nt::after{content:'';position:absolute;top:0;right:0;border-top:7px solid #F97316;border-left:7px solid transparent}
 table.pv tr.today td:not(.red):not(.gre):not(.hl){background:#DBEAFE !important}
 table.pv tr.today td.pd{box-shadow:inset 3px 0 0 var(--blue)}
+.row.ro{cursor:default}
+.row.ro:active{background:transparent}
+.row.top{align-items:flex-start}
+.row.focus{background:#E8F0FE;border-radius:8px}
+.desc{display:block;font-size:14px;margin-top:4px;white-space:normal}
+.desc.mu{color:var(--mu);font-size:13px}
+.layer .body{display:flex;flex-direction:column;gap:14px;padding-top:14px}
+.twobtn{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.twobtn .btn{min-height:46px;font-size:15px}
+.kpi{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kpi div{background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 14px}
+.kpi small{display:block;font-size:12px;font-weight:700;color:var(--mu);text-transform:uppercase}
+.kpi b{font-size:22px;font-weight:800}
